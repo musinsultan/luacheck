@@ -11,3 +11,7 @@ build/bin/*
 package
 scripts/UnicodeData-*
 docsrc/.doctrees
+.idea/luacheck.iml
+.idea/modules.xml
+.idea/vcs.xml
+.idea/workspace.xml
