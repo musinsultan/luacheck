@@ -9,6 +9,7 @@ set -o pipefail
 
 declare -A spec_to_module
 spec_to_module[spec/bad_whitespace_spec.lua]=src/luacheck/stages/detect_bad_whitespace.lua
+spec_to_module[spec/tarantool_timeout_spec.lua]=src/luacheck/stages/detect_tarantool_timeout.lua
 spec_to_module[spec/cache_spec.lua]=src/luacheck/cache.lua
 spec_to_module[spec/check_spec.lua]=src/luacheck/check.lua
 spec_to_module[spec/config_spec.lua]=src/luacheck/config.lua

@@ -23,6 +23,7 @@ local functions = {
    {name = "run", module = "stages.name_functions"},
    {name = "run", module = "stages.resolve_locals"},
    {name = "run", module = "stages.detect_bad_whitespace"},
+   {name = "run", module = "stages.detect_tarantool_timeout"},
    {name = "run", module = "stages.detect_cyclomatic_complexity"},
    {name = "run", module = "stages.detect_empty_blocks"},
    {name = "run", module = "stages.detect_empty_statements"},
