@@ -5,10 +5,11 @@ local function assert_warnings(warnings, src)
 end
 
 describe("tarantool timeout", function()
-    it("detects lines with only whitespace", function()
-        assert_warnings({}, [[
+    it("detects net.box ping without timeout", function()
+        assert_warnings({code = "1001", line = 2, column = 1, end_column = 1}, [[
         net_box = require('net.box')
         net_box.self:ping()
         ]])
     end)
 end)
+
