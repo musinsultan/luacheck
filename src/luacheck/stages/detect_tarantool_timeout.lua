@@ -37,6 +37,9 @@ local modules = {
 -- For debug only
 --__--__--__--__--__--__
 local function tprint (tbl, indent)
+    if type(tbl) == "boolean" then 
+        return tbl
+    end
     if not indent then indent = 0 end
     local toprint = string.rep(" ", indent) .. "{\r\n"
     indent = indent + 2 
@@ -116,7 +119,7 @@ local function find_node_with_module(chstate, node)
 end
 
 local function deep_search_in_array(reqvalue, array, toreturn)
-    for ind,val in ipairs(array) do 
+    for ind,val in pairs(array) do
         table.insert(toreturn, ind)
         if type(val) == "string" then
             if val == reqvalue then
@@ -131,10 +134,15 @@ local function deep_search_in_array(reqvalue, array, toreturn)
 end
 
 local function is_value_in_module_name(reqvalue)
-    for module, arModule in ipairs(module_name) do
-        return
+    for module, arModule in pairs(module_name) do
+        local t = deep_search_in_array(reqvalue, arModule, {})
+        if t then
+            table.insert(t, 1, module)
+            table.remove(t, #t)
+            return t
+        end
     end
-    -- return false
+    return false
 end
 
 local function detect_in_nodes(chstate, nodes)
@@ -144,16 +152,20 @@ local function detect_in_nodes(chstate, nodes)
     -- Нужно запоминать новые переменные, хранящие в себе интересующие объекты (если метод, возвращающий объект есть в ключах 
     --    соответствующего массива, независимо от уровня вложенности.)
     for _, node in ipairs(nodes) do
-        print(tprint(node))
+        -- print(tprint(module_name))
+        -- print(tprint(is_value_in_module_name('net_box')))
         if node.tag == "Id" then
             temp_name = node[1]
         end
         if node.tag == "Call"  then
             if node[1][1] == "require" and modules[node[2][1]] then
                 module_name[node[2][1]] = {[0] = temp_name}
+                temp_name = ""
             end
-           -- if node[1][1] in module_name на любом уровне вложенности
-           
+            if is_value_in_module_name(node[1][1]) then
+            --    if node[2][1] есть в ключах массива modules на уровне вложенности node[1][1]
+            -- записать temp_name + проверить вызовы функций дальше
+            end
         end
         if module_name ~= {} then
             find_node_with_module(chstate, node)
