@@ -145,14 +145,23 @@ local function is_value_in_module_name(reqvalue)
     return false
 end
 
+local function get_value_from_keys_array(array, keys)
+    if #keys == 1 then
+        return array[keys[1]]
+    else
+        return get_value_from_keys_array(array[table.remove(keys,1)], keys)
+    end
+end
+
 local function detect_in_nodes(chstate, nodes)
     -- Если объявляется новая переменная, ее имя запоминается в temp_name, если в нее записывается require нужного
     -- модуля (из ключей modules) то имя записывается в module_name[название модуля][0]
 
     -- Нужно запоминать новые переменные, хранящие в себе интересующие объекты (если метод, возвращающий объект есть в ключах 
     --    соответствующего массива, независимо от уровня вложенности.)
+
     for _, node in ipairs(nodes) do
-        -- print(tprint(module_name))
+        print(tprint(node))
         -- print(tprint(is_value_in_module_name('net_box')))
         if node.tag == "Id" then
             temp_name = node[1]
@@ -162,10 +171,11 @@ local function detect_in_nodes(chstate, nodes)
                 module_name[node[2][1]] = {[0] = temp_name}
                 temp_name = ""
             end
-            if is_value_in_module_name(node[1][1]) then
+            --сначала рекурсивно найти первый объект, к которому применяется call
+            --if is_value_in_module_name(node[1][1]) then
             --    if node[2][1] есть в ключах массива modules на уровне вложенности node[1][1]
             -- записать temp_name + проверить вызовы функций дальше
-            end
+            --end
         end
         if module_name ~= {} then
             find_node_with_module(chstate, node)
