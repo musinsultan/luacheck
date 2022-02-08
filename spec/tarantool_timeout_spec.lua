@@ -38,7 +38,7 @@ describe("tarantool timeout", function()
     it("gives no warning if timeout used", function()
         assert_warnings({}, [[
         net_box = require('net.box')
-        connect = net_box.connect()
+        connect = net_box.connect().conn()
     ]])
     end)
 
