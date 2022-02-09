@@ -5,42 +5,47 @@ local function assert_warnings(warnings, src)
 end
 
 describe("tarantool timeout", function()
-    -- it("detects net.box ping without parameters", function()
-    --     assert_warnings({{code = "1001", line = 2, column = 1, end_column = 1}}, [[
-    --     net_box = require('net.box')
-    --     net_box.self:ping()
-    --     ]])
-    -- end)
-
-    -- it("detects net.box ping without timeout in parameters", function()
-    --     assert_warnings({{code = "1001", line = 2, column = 1, end_column = 1}}, [[
-    --     net___box = require('net.box')
-    --     net___box.self:ping({not_timeout=0})
-    --     ]])
-    -- end)
-
-    -- it("gives no warning if timeout used", function()
-    --     assert_warnings({}, [[
-    --     net_box = require('net.box')
-    --     vaar = net_box.self:ping({timeout=100})
-    --     ]])
-    -- end)
-
-    -- it("gives no warning if timeout used", function()
-    --     assert_warnings({}, [[
-    --     local function foo(a)
-    --         --a.
-    --     end
-    --     foo(require(net.box))
-    --     ]])
-    -- end)
-
     it("gives no warning if timeout used", function()
         assert_warnings({}, [[
-        net_box = require('net.box')
-        connect = net_box.connect().conn()
+            net_box = require('net.box')
+            net_box.connect({timeout=1})
+            net_box.connect({timeout=1}):ping({timeout=1})
+            space = net_box.connect({timeout=1}).space({timeout=1})
+            space.testspace({timeout=1})
+
+            vsh = require("vshard")
+            vsh.router.call(1, {timeout=1})
     ]])
     end)
+
+    it("Warning if method used without timeout", function()
+        assert_warnings({
+            {code = "1001", line = 2, column = 1, end_column = 1, funcname="connect", modulename="net.box"},
+            {code = "1001", line = 3, column = 1, end_column = 1, funcname="ping", modulename="net.box"},
+            {code = "1001", line = 5, column = 1, end_column = 1, funcname="connect", modulename="net.box"},
+            {code = "1001", line = 6, column = 1, end_column = 1, funcname="testspace", modulename="net.box"}
+        }, [[
+            net_box = require('net.box')
+            net_box.connect()
+            net_box.connect({timeout=1}):ping()
+
+            space = net_box.connect().space({timeout=1})
+            space.testspace({var=1})
+        ]])
+    end)
+
+    it("Warning if method used without timeout", function()
+        assert_warnings({
+            {code = "1001", line = 3, column = 1, end_column = 1, funcname="wait", modulename="fiber"}
+        }, [[
+            fb = require("fiber")
+            fb.cond():wait({timeout=1})
+            fb.cond():wait({})
+        ]])
+    end)
+
+
+
 
 end)
 
