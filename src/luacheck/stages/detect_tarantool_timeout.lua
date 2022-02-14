@@ -51,7 +51,7 @@ local module_name = {}
 --   }
 -- }
 
-function table.shallow_copy(t)
+local function shallow_copy(t)
     local t2 = {}
     for k,v in pairs(t) do
       t2[k] = v
@@ -62,7 +62,7 @@ function table.shallow_copy(t)
 local function set_value_to_array_keys(array, value, keys)
     -- Устанавливает значение элемента массива array по набору ключей keys
     -- array[keys[1]][keys[2]]... = value
-    local copykeys = table.shallow_copy(keys)
+    local copykeys = shallow_copy(keys)
     for ind, val in pairs(copykeys) do
         if #copykeys == 1 then
             array[copykeys[1]] = value
@@ -81,7 +81,7 @@ end
 local function get_value_from_keys_array(array, keys)
     -- Возвращает значение элемента массива array по ключам keys 
     -- array[keys[1]][keys[2]]...
-    local copykeys = table.shallow_copy(keys)
+    local copykeys = shallow_copy(keys)
     if #copykeys == 1 then
         return array[copykeys[1]]
     else
@@ -185,7 +185,7 @@ local function check_calls_for_timeout(chstate, nodes, node_index, node, chain, 
     end
     if nodes[node_index+1] and nodes[node_index+1].tag == "String" then
         -- Чекнуть функцию после двоеточия
-        local chain0 = table.shallow_copy(chain)
+        local chain0 = shallow_copy(chain)
         chain0[#chain0] = el
         table.insert(chain0, 0)
         local funcs0 = get_value_from_keys_array(modules, chain0)

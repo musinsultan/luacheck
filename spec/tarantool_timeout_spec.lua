@@ -44,8 +44,5 @@ describe("tarantool timeout", function()
         ]])
     end)
 
-
-
-
 end)
 
