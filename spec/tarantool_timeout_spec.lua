@@ -12,9 +12,6 @@ describe("tarantool timeout", function()
             net_box.connect({timeout=1}):ping({timeout=1})
             space = net_box.connect({timeout=1}).space({timeout=1})
             space.testspace({timeout=1})
-
-            vsh = require("vshard")
-            vsh.router.call(1, {timeout=1})
     ]])
     end)
 
@@ -43,6 +40,18 @@ describe("tarantool timeout", function()
             fb.cond():wait({})
         ]])
     end)
+
+    it("Warning if method used without timeout", function()
+        assert_warnings({
+            {code = "1001", line = 3, column = 1, end_column = 1, funcname="call", modulename="vshard"}
+        }, [[
+            local vsh = require("vshard")
+            a = foo(vsh.router.call(1, {timeout=1}))
+            a = foo(vsh.router.call(1, {timout=1}))
+        ]])
+    end)
+
+
 
 end)
 

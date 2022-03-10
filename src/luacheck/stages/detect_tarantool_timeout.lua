@@ -43,6 +43,7 @@ local modules = {
 
 
 local temp_name = ""
+local temp_node = {}
 local module_name = {}
 -- module_name = {
 --    "net.box" = {
@@ -130,8 +131,12 @@ local function get_call_chain(node, chain, pars)
     -- К pars можно обратиться, она хранит в себе параметры вызова функций (кроме последней)
     -- по тем же индексам
     if node.tag == "Call" then
-        if node[2] then
-            pars[#chain+1] = node[2]
+        for i = 2,#node do
+            if node[i] then
+                if node[i].tag == 'Table' then
+                    pars[#chain+1] = node[i]
+                end 
+            end
         end
         return get_call_chain(node[1], chain, pars)
     end
@@ -150,6 +155,9 @@ local function get_call_chain(node, chain, pars)
     return chain
 end
 
+local function checkrest(nodes, node_index)
+    
+end
 
 local function check_calls_for_timeout(chstate, nodes, node_index, node, chain, pars, is_last)
     local el = table.remove(chain,#chain)
@@ -167,16 +175,22 @@ local function check_calls_for_timeout(chstate, nodes, node_index, node, chain, 
                         warn_timeout(chstate, node, el, chain[1])
                     end
                 else    -- Есть параметры, но таймаута нет
-                    if nodes[node_index+1].tag == "Table" then
-                        if not deep_search_in_array("timeout", nodes[node_index+1], {}) then
+                    if nodes[node_index+1].tag == "String" then
+                        -- Чекнуть параметр для последнего объекта перед двоеточием
+                        if not pars[#chain] or not deep_search_in_array("timeout", pars[#chain], {})then
                             warn_timeout(chstate, node, el, chain[1])
                         end
-                    else    -- Есть вызов функции через двоеточие
-                        if nodes[node_index+1].tag == "String" then
-                            -- Чекнуть параметр для последнего объекта перед двоеточием
-                            if not pars[#chain] or not deep_search_in_array("timeout", pars[#chain], {})then
-                                warn_timeout(chstate, node, el, chain[1])
+                    else
+                        local flag = false
+                        for i=1,#nodes-node_index do
+                            if nodes[node_index+i].tag == "Table" then
+                                if  deep_search_in_array("timeout", nodes[node_index+i], {}) then
+                                    flag = true
+                                end
                             end
+                        end
+                        if not flag then
+                            warn_timeout(chstate, node, el, chain[1])
                         end
                     end
                 end
@@ -200,6 +214,7 @@ local function check_calls_for_timeout(chstate, nodes, node_index, node, chain, 
 end
 
 local function process_functions(chstate, nodes, node_index, node)
+
     -- Если результат вызова функции/метода записывается в переменную - у node тег Invoke
     -- Он состоит из 3х node, раскрываем и записываем в nodes вместо одного Invoke
     if node.tag == "Invoke" then
@@ -213,6 +228,8 @@ local function process_functions(chstate, nodes, node_index, node)
         local pars = {}
         local chain = get_call_chain(node, {}, pars)
         local mod = is_value_in_module_name(chain[1])
+
+        
         if mod then -- Если первая переменная(!) в цепочке вызовов запомнена в module_name
             -- Заменяем в чейне имя переменной на полный путь до объекта. В параметры записываем timeout,
             -- чтобы не было ложных срабатываний
@@ -237,6 +254,7 @@ end
 local function remember_names(node)
     -- Если объявляется новая переменная, ее имя запоминается в temp_name, если в нее записывается require нужного
     -- модуля (из ключей modules) то имя записывается в module_name[название модуля][0]
+    
     if node.tag == "Id" then
         temp_name = node[1]
     end
@@ -271,11 +289,23 @@ end
 local function detect_in_nodes(chstate, nodes)
     for node_index, node in ipairs(nodes) do
         remember_names(node)
+        if node.tag == 'Call' then
+            for i,nd in ipairs(node) do
+                if i~=1 then
+                    if nd.tag == 'Call' or nd.tag =='Index' then
+                        process_functions(chstate, nodes, node_index, nd)
+                    end
+                end
+            end
+        end
+
         if module_name ~= {} then
             process_functions(chstate, nodes, node_index, node)
         end
     end
 end
+
+
 
 local function detect_in_line(chstate, line)
     for _, item in ipairs(line.items) do
@@ -283,6 +313,11 @@ local function detect_in_line(chstate, line)
             detect_in_nodes(chstate, item.node)
         elseif item.tag == "Local" then
             if item.rhs then
+                for _, lh in ipairs(item.lhs) do
+                    temp_node.tag = 'Id'
+                    temp_node[1] = lh[1]
+                end
+                detect_in_nodes(chstate, {temp_node})
                 detect_in_nodes(chstate, item.rhs)
             end
         elseif item.tag == "Set" then
