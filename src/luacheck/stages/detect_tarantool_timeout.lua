@@ -214,7 +214,6 @@ local function check_calls_for_timeout(chstate, nodes, node_index, node, chain, 
 end
 
 local function process_functions(chstate, nodes, node_index, node)
-
     -- Если результат вызова функции/метода записывается в переменную - у node тег Invoke
     -- Он состоит из 3х node, раскрываем и записываем в nodes вместо одного Invoke
     if node.tag == "Invoke" then
@@ -229,10 +228,12 @@ local function process_functions(chstate, nodes, node_index, node)
         local chain = get_call_chain(node, {}, pars)
         local mod = is_value_in_module_name(chain[1])
 
-        
         if mod then -- Если первая переменная(!) в цепочке вызовов запомнена в module_name
             -- Заменяем в чейне имя переменной на полный путь до объекта. В параметры записываем timeout,
             -- чтобы не было ложных срабатываний
+
+
+
             table.remove(chain,1)
             for i=1,#mod do
                 table.insert(chain, i, mod[i])
@@ -254,7 +255,6 @@ end
 local function remember_names(node, temp_name)
     -- Если объявляется новая переменная, ее имя запоминается в temp_name, если в нее записывается require нужного
     -- модуля (из ключей modules) то имя записывается в module_name[название модуля][0]
-    
     -- if node.tag == "Id" then
     --     temp_name = node[1]
     -- end
@@ -312,16 +312,18 @@ local function detect_in_line(chstate, line)
         elseif item.tag == "Local" then
             if item.rhs then
             for _, rh in ipairs(item.rhs) do
-                remember_names(rh, item.lhs[1][1])
+                if type(item.lhs[1][1]) == "string" then
+                    remember_names(rh, item.lhs[1][1])
+                end
             end
-                -- detect_in_nodes(chstate, {temp_node})
             detect_in_nodes(chstate, item.rhs)
         end
         elseif item.tag == "Set" then
             for _, rh in ipairs(item.rhs) do
-                remember_names(rh, item.lhs[1][1])
+                if type(item.lhs[1][1]) == "string" then
+                    remember_names(rh, item.lhs[1][1])
+                end
             end
-            -- detect_in_nodes(chstate, item.lhs)
             detect_in_nodes(chstate, item.rhs)
         end
     end
