@@ -35,7 +35,7 @@ describe("tarantool timeout", function()
         assert_warnings({
             {code = "1001", line = 3, column = 1, end_column = 1, funcname="wait", modulename="fiber"}
         }, [[
-            fb = require("fiber")
+            local fb = require("fiber")
             fb.cond():wait({timeout=1})
             fb.cond():wait({})
         ]])

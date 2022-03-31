@@ -42,7 +42,7 @@ local modules = {
 }
 
 
-local temp_name = ""
+-- local temp_name = ""
 local temp_node = {}
 local module_name = {}
 -- module_name = {
@@ -251,15 +251,16 @@ local function process_functions(chstate, nodes, node_index, node)
     end
 end
 
-local function remember_names(node)
+local function remember_names(node, temp_name)
     -- Если объявляется новая переменная, ее имя запоминается в temp_name, если в нее записывается require нужного
     -- модуля (из ключей modules) то имя записывается в module_name[название модуля][0]
     
-    if node.tag == "Id" then
-        temp_name = node[1]
-    end
+    -- if node.tag == "Id" then
+    --     temp_name = node[1]
+    -- end
     if node.tag == "Call" or node.tag =="Index" then
         if node[1][1] == "require" and modules[node[2][1]] then
+
             module_name[node[2][1]] = {[0] = temp_name}
             temp_name = ""
         end
@@ -288,7 +289,6 @@ end
 
 local function detect_in_nodes(chstate, nodes)
     for node_index, node in ipairs(nodes) do
-        remember_names(node)
         if node.tag == 'Call' then
             for i,nd in ipairs(node) do
                 if i~=1 then
@@ -298,13 +298,11 @@ local function detect_in_nodes(chstate, nodes)
                 end
             end
         end
-
         if module_name ~= {} then
             process_functions(chstate, nodes, node_index, node)
         end
     end
 end
-
 
 
 local function detect_in_line(chstate, line)
@@ -313,15 +311,17 @@ local function detect_in_line(chstate, line)
             detect_in_nodes(chstate, item.node)
         elseif item.tag == "Local" then
             if item.rhs then
-                for _, lh in ipairs(item.lhs) do
-                    temp_node.tag = 'Id'
-                    temp_node[1] = lh[1]
-                end
-                detect_in_nodes(chstate, {temp_node})
-                detect_in_nodes(chstate, item.rhs)
+            for _, rh in ipairs(item.rhs) do
+                remember_names(rh, item.lhs[1][1])
             end
+                -- detect_in_nodes(chstate, {temp_node})
+            detect_in_nodes(chstate, item.rhs)
+        end
         elseif item.tag == "Set" then
-            detect_in_nodes(chstate, item.lhs)
+            for _, rh in ipairs(item.rhs) do
+                remember_names(rh, item.lhs[1][1])
+            end
+            -- detect_in_nodes(chstate, item.lhs)
             detect_in_nodes(chstate, item.rhs)
         end
     end
